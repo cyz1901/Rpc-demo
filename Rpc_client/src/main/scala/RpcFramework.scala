@@ -2,7 +2,8 @@ import akka.actor.{Actor, ActorSystem, Props}
 import java.net.{ServerSocket, Socket}
 import java.io._
 import java.lang.Class
-import java.lang.reflect.Proxy
+import java.lang.reflect.{Constructor, InvocationHandler, Method, Proxy}
+
 
 
 
@@ -160,17 +161,21 @@ object RpcFramework {
 
 
    */
-  def test_srefer[T](interfaceClass: Class[T]): Unit = {
-    val proxy = Proxy.getProxyClass(interfaceClass.getClassLoader,interfaceClass)
+  def test_srefer[T](interfaceClass: AnyRef): Unit = {
+    val proxy = Proxy.newProxyInstance(interfaceClass.getClass.getClassLoader,interfaceClass.getClass.getInterfaces,new InvocationHandler {
+      override def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
+        val aa:AnyRef = method.invoke(interfaceClass)
+        aa
+      }
+    })
     println(proxy)
   }
 
 
   def main(args: Array[String]): Unit = {
     //export(AnyRef,10)
-    //test_srefer(Man.getClass)
-    val p = Proxy.getProxyClass(Man.getClass.getClassLoader,classOf[People])
-    println(p)
+    test_srefer(Man)
+
   }
 }
 
