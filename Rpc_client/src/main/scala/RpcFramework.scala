@@ -70,7 +70,7 @@ object RpcFramework {
     }
   }
 
-  class RpcClientSocket extends Actor{
+  class RpcClientSocket extends Actor {
     override def receive: Receive = {
       case Array(x,y:String,z:Int) =>
         val proxy = Proxy.newProxyInstance(x.getClass.getClassLoader,x.getClass.getInterfaces,new InvocationHandler {
@@ -78,7 +78,7 @@ object RpcFramework {
 
 
             println("before")
-            val result:AnyRef = method.invoke(x)
+            val result = method.invoke(x,args:_*)
             println("after")
             result
 
@@ -168,18 +168,15 @@ object RpcFramework {
   def main(args: Array[String]): Unit = {
     //println(refer(Man,"127.0.0.1",5050))
     //refer(Man,"127.0.0.1",5050)
-    /*
-    println(Man.getClass.getSimpleName)
-    println(Man.getClass.getName)
-    println(classOf[People])
-    println(classOf[Man])
+    val cc = new Man()
 
-     */
-    println(Man.getClass.getSimpleName)
-    println(Man.getClass.getName)
+    println(classOf[People].getClass.getInterfaces)
 
-    println(classOf[Man].getClass)
-    println(classOf[Man].getClass.getInterfaces)
+
+
+
+
+
 
 
 
