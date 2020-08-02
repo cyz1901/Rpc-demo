@@ -1,43 +1,54 @@
 import akka.actor.{Actor, ActorSystem, Props}
 import java.net.{ServerSocket, Socket}
+import akka.pattern.ask
 import java.io._
-import java.lang.reflect
-import java.lang.reflect.Method
+import java.lang.reflect.{Constructor, InvocationHandler, Method, Proxy}
+import scala.reflect.runtime.universe._
+import akka.util.Timeout
+import scala.concurrent.duration._
+import scala.concurrent.Await
+import scala.language.postfixOps
 
-import scala.util.Try
+
+
+
 
 class RpcFramework {
 
 }
 
 
+
 object RpcFramework {
+  implicit val timeout: Timeout = Timeout(10 second)
 
   class RpcServerSocket extends Actor{
     override def receive: Receive = {
       case  "start" =>
-/*
         try {
-          val RpcServerSocket = new ServerSocket(5050)
+          val RpcServerSocket = new ServerSocket(5051)
+          println("远程服务暴露")
           try while (true) {
             val RpcSocekt = RpcServerSocket.accept()
+            println("接收到Socket",RpcSocekt.getLocalPort,RpcSocekt.getInetAddress)
             val in = new ObjectInputStream(RpcSocekt.getInputStream)
             val out = new ObjectOutputStream(RpcSocekt.getOutputStream)
             try {
               val methodName: String = in.readUTF
-
+              println(methodName)
               // 读取参数类型
-              val parameterTypes: Class[_] = in.readObject.asInstanceOf[Class[_]]
-              println("hello")
+              val parameterTypes: Array[Class[_]] = in.readObject.asInstanceOf[Array[Class[_]]]
+              //val parameterTypes :Class[_] = in.readObject().asInstanceOf[Class[_]]
+
+
               // 读取参数值
-              val arguments: Any = in.readObject()
+              val arguments: Array[AnyRef] = in.readObject.asInstanceOf[Array[AnyRef]]
 
               // 获取方法
-              val method: Method = RpcSocekt.getClass.getMethod(methodName, parameterTypes)
-
+              val method : Method= RpcSocekt.getClass.getMethod(methodName, parameterTypes.asInstanceOf[Class[_]])
+              println(method)
               // 处理结果
-              val result: Any = method.invoke(RpcSocekt, arguments)
-
+              //val result: Any = method.invoke(RpcSocekt, arguments)
               // 写入结果
             }catch {
               case e: Exception =>
@@ -55,15 +66,57 @@ object RpcFramework {
 
         }
 
- */
+
         println("Is ready")
 
       case _  => println("nothing")
     }
   }
 
+  class RpcClientSocket extends Actor {
+    override def receive: Receive = {
+      case Array(x,y:String,z:Int) =>
+        val proxy = Proxy.newProxyInstance(x.getClass.getClassLoader,x.getClass.getInterfaces,new InvocationHandler {
+          override def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
+            var result :AnyRef = null
+            try {
+              val socket = new Socket(y, z)
+              println("socekt链接成功"+y+z)
+              val out = new ObjectOutputStream(socket.getOutputStream)
+              val in = new ObjectInputStream(socket.getInputStream)
+              try {
+                out.writeUTF(method.getName)
+                out.writeObject(method.getParameterTypes)
+                out.writeObject(args)
+                result = in.readObject
+                result
+              } catch {
+                case e: Exception =>
+                  e.printStackTrace()
+                  null
+              } finally {
+                if (socket != null) socket.close()
+                if (out != null) out.close()
+                if (in != null) in.close()
+              }
+            }
 
-  def export(service : Any,port : Int): Unit ={
+
+          }
+        })
+
+
+        sender() ! proxy
+
+
+
+
+
+      case _  => println("nothing")
+    }
+  }
+
+  def export(service : AnyRef,port : Int): Unit ={
     if(service == null || port <=0 || port>=65535){
       throw new RuntimeException("Arguments error");
     }
@@ -74,8 +127,52 @@ object RpcFramework {
   }
 
 
+  def refer[T](interfaceClass: AnyRef,host :String,port :Int): T ={
+    if(interfaceClass == null ||host == null || port <=0 || port>=65535){
+      throw new RuntimeException("Arguments error");
+    }
+    val system = ActorSystem("refer")
+    val reactor = system.actorOf(Props[RpcClientSocket],name = "reactor")
+    val rr = reactor ? Array(interfaceClass,host,port)
+    val result = Await.result(rr,2 second).asInstanceOf[T]
+    result
 
-  def main(args: Array[String]): Unit = {
-    export(AnyRef,10)
+
   }
+
+
+
+
+  /*
+    def test_srefer[T](interfaceClass: AnyRef): Unit = {
+      val proxy = Proxy.newProxyInstance(interfaceClass.getClass.getClassLoader,interfaceClass.getClass.getInterfaces,new InvocationHandler {
+        override def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
+          val result:AnyRef = method.invoke(interfaceClass)
+          result
+        }
+      })
+      println(proxy)
+    }
+
+   */
+  def main(args: Array[String]): Unit = {
+    //println(refer(Man,"127.0.0.1",5050))
+    //refer(Man,"127.0.0.1",5050)
+    val cc = new Man()
+
+    println(classOf[People].getClass.getInterfaces)
+
+
+
+
+
+
+
+
+
+  }
+
 }
+
+
+

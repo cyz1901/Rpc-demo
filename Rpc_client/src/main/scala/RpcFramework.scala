@@ -27,8 +27,10 @@ object RpcFramework {
       case  "start" =>
                 try {
                   val RpcServerSocket = new ServerSocket(5050)
+                  println("远程服务暴露")
                   try while (true) {
                     val RpcSocekt = RpcServerSocket.accept()
+                    println("接收到Socket")
                     val in = new ObjectInputStream(RpcSocekt.getInputStream)
                     val out = new ObjectOutputStream(RpcSocekt.getOutputStream)
                     try {
@@ -36,7 +38,7 @@ object RpcFramework {
 
                       // 读取参数类型
                       val parameterTypes: Class[_] = in.readObject.asInstanceOf[Class[_]]
-                      println("hello")
+
                       // 读取参数值
                       val arguments: Any = in.readObject()
 
@@ -75,29 +77,30 @@ object RpcFramework {
       case Array(x,y:String,z:Int) =>
         val proxy = Proxy.newProxyInstance(x.getClass.getClassLoader,x.getClass.getInterfaces,new InvocationHandler {
           override def invoke(proxy: Any, method: Method, args: Array[AnyRef]): AnyRef = {
-
-
+            /*
             println("before")
             val result = method.invoke(x,args:_*)
             println("after")
             result
 
 
+             */
 
-
-
-
-
-            /*
             var result :AnyRef = null
             try {
+              println(y)
+              println(z)
               val socket = new Socket(y, z)
+
               val out = new ObjectOutputStream(socket.getOutputStream)
               val in = new ObjectInputStream(socket.getInputStream)
               try {
                 out.writeUTF(method.getName)
+                //
                 out.writeObject(method.getParameterTypes)
+
                 out.writeObject(args)
+
                 result = in.readObject
                 result
               } catch {
@@ -110,7 +113,7 @@ object RpcFramework {
                 if (in != null) in.close()
               }
             }
-            */
+
 
           }
         })
@@ -126,12 +129,14 @@ object RpcFramework {
     }
   }
 
-  def export(service : Any,port : Int): Unit ={
+  def export(service : AnyRef,port : Int): Unit ={
+
     if(service == null || port <=0 || port>=65535){
       throw new RuntimeException("Arguments error");
     }
     val system = ActorSystem("export")
     val exactor = system.actorOf(Props[RpcServerSocket],name = "exactor")
+
     exactor ! "start"
 
   }
