@@ -96,7 +96,8 @@ object RpcFramework {
               val in = new ObjectInputStream(socket.getInputStream)
               try {
                 out.writeUTF(method.getName)
-                //
+
+                out.writeUTF(x.getClass.getSimpleName)
                 out.writeObject(method.getParameterTypes)
 
                 out.writeObject(args)

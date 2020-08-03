@@ -8,7 +8,8 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.language.postfixOps
-
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 
 
 
@@ -35,21 +36,24 @@ object RpcFramework {
             val out = new ObjectOutputStream(RpcSocekt.getOutputStream)
             try {
               val methodName: String = in.readUTF
-              println(methodName)
+
+
+
               // 读取参数类型
               val parameterTypes: Array[Class[_]] = in.readObject.asInstanceOf[Array[Class[_]]]
-              //val parameterTypes :Class[_] = in.readObject().asInstanceOf[Class[_]]
 
 
               // 读取参数值
               val arguments: Array[AnyRef] = in.readObject.asInstanceOf[Array[AnyRef]]
 
               // 获取方法
-              val method : Method= RpcSocekt.getClass.getMethod(methodName, parameterTypes.asInstanceOf[Class[_]])
-              println(method)
+              //val method = RpcServerSocket.getClass.getMethod(methodName, parameterTypes:_*)
+
               // 处理结果
-              //val result: Any = method.invoke(RpcSocekt, arguments)
+              //val result: Any = method.invoke(RpcSocekt, arguments:_*)
+              val result :Any = Man.getClass.getMethod(methodName, parameterTypes:_*).invoke(Man,arguments:_*)
               // 写入结果
+              out.writeObject(result)
             }catch {
               case e: Exception =>
                 e.printStackTrace()
